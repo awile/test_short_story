@@ -8,6 +8,7 @@ __pycache__/
 # Generated media can become large quickly.
 assets/generated/
 assets/exports/
+assets/**
 
 # Local tool outputs and scratch files.
 .pytest_cache/
