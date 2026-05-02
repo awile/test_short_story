@@ -8,5 +8,6 @@ It keeps story planning, generated assets, experiments, and reusable Python code
 
 - `story/`: premise, characters, script, and shot list
 - `assets/`: references, generated media, and final exports
-- `experiments/`: quick tests for image, video, voice, and pipeline ideas
+- `experiments/`: markdown notes for image, video, voice, and pipeline approaches
 - `src/`: reusable Python code for tools and pipelines
+- `src/pipeline/`: runnable image-generation experiment pipelines

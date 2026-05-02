@@ -1,1 +1,1 @@
-"""Reusable generation and assembly pipelines."""
+"""Runnable image-generation experiment pipelines."""
