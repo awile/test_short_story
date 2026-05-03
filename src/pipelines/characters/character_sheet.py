@@ -14,26 +14,25 @@ from src.config import ASSETS_DIR, GENERATED_DIR, load_environment
 
 
 MODEL = "google/nano-banana"
-CHARACTER_SLUG = "marcus-vale"
+CHARACTER_SLUG = "richard-vale"
 OUTPUT_DIR = GENERATED_DIR / "characters" / "character_sheets" / CHARACTER_SLUG / "00"
 REFERENCE_DIR = OUTPUT_DIR
 REQUEST_DELAY_SECONDS = 11
 MAX_THROTTLE_RETRIES = 3
 
 REFERENCE_IMAGES = (
-    "marcus-vale-reference-01.png",
-    "marcus-vale-reference-02.png",
-    "marcus-vale-reference-03.png",
-    "marcus-vale-reference-04.png",
-    "marcus-vale-reference-05.png",
-    "marcus-vale-reference-06.png",
+    "richard-vale-reference-01.png",
+    "richard-vale-reference-02.png",
+    "richard-vale-reference-03.png",
+    "richard-vale-reference-04.png",
+    "richard-vale-reference-05.png",
 )
 
 BASE_CHARACTER_DIRECTION = (
-    "same character and identity as the reference images, Marcus Vale, dark hair, mid-to-late thirties, "
-    "severe expensive tailored suit, controlled older-brother presence, calm surface with quiet hostility underneath, "
-    "polished law firm grooming, realistic wardrobe, natural skin texture, realistic fabric, ordinary studio lighting, "
-    "clean-shaven face, no mustache, no beard, no stubble, no five-o-clock shadow, less glossy, unretouched, "
+    "same character and identity as the reference images, Richard Vale, silver hair, in his sixties, "
+    "powerful law firm founder and father, conservative immaculate senior partner suit, authoritative expensive presence, "
+    "emotionally contained patriarch, polished camera-ready face with natural age lines but not deeply wrinkled, "
+    "realistic wardrobe, natural skin texture, realistic fabric, ordinary studio lighting, less glossy, unretouched, "
     "no comic-book styling"
 )
 
@@ -62,8 +61,8 @@ SHEET_VARIANTS = (
         prompt=(
             "Create a clean character portrait turnaround sheet using the reference images as the strict identity anchor. "
             "Show seven panels on a plain neutral background: front portrait, left profile portrait, right profile portrait, "
-            "three-quarter portrait, neutral expression, watchful expression, and cold angry close-up. Keep the same suit, "
-            "dark hair, severe grooming, natural skin texture, and ordinary lighting. No text labels."
+            "three-quarter portrait, neutral expression, stern expression, and privately shaken close-up. Keep the same suit, "
+            "silver hair, polished senior partner grooming, natural skin texture, and ordinary lighting. No text labels."
         ),
     ),
     SheetVariant(
@@ -78,10 +77,10 @@ SHEET_VARIANTS = (
     SheetVariant(
         slug="story-use",
         prompt=(
-            "Create a practical story-use character sheet from the same identity: neutral studio portrait, seated at a "
-            "conference table, standing in a law firm hallway, watching from a doorway, and cold tense close-up. Preserve "
-            "the same face, dark hair, severe grooming, controlled posture, and expensive tailored suit across every panel. "
-            "Use ordinary realistic lighting and no text labels."
+            "Create a practical story-use character sheet from the same identity: neutral studio portrait, seated at the head "
+            "of a conference table, standing in a private senior partner office, holding a phone while receiving bad news, "
+            "and authoritative close-up. Preserve the same face, silver hair, polished grooming, controlled posture, and "
+            "conservative senior partner suit across every panel. Use ordinary realistic lighting and no text labels."
         ),
     ),
 )
