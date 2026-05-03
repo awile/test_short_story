@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -7,12 +8,15 @@ from urllib.parse import urlparse
 
 import replicate
 import requests
+from replicate.exceptions import ReplicateError
 
 from src.config import ASSETS_DIR, GENERATED_DIR, load_environment
 
 
-MODEL = "black-forest-labs/flux-schnell"
-OUTPUT_DIR = GENERATED_DIR / "characters" / "cheap_concepts" / "ethan" / "00"
+OUTPUT_DIR = GENERATED_DIR / "characters" / "cheap_concepts"
+REQUEST_DELAY_SECONDS = 11
+MAX_THROTTLE_RETRIES = 3
+RUN_STAGE_INDEX: int | None = None
 
 BASE_STYLE_PROMPT = (
     "cinematic corporate thriller, prestige television drama, cold glass law office, "
@@ -27,11 +31,25 @@ NEGATIVE_PROMPT = (
 
 
 @dataclass(frozen=True)
+class VariantStage:
+    model: str
+    variants: tuple[str, ...]
+    reference_images: tuple[str, ...] = ()
+    reference_input_name: str = "input_image"
+    reference_input_many: bool = False
+    include_negative_prompt: bool = True
+    include_num_outputs: bool = True
+    aspect_ratio: str = "9:16"
+    output_format: str | None = "png"
+    model_inputs: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
 class CharacterConcept:
     slug: str
     name: str
     description: str
-    variants: tuple[str, ...]
+    variant_stages: tuple[VariantStage, ...]
     optional_input_images: tuple[str, ...] = ()
 
 
@@ -42,11 +60,112 @@ ETHAN = CharacterConcept(
         "younger son and junior employee at his father's law firm, polished but vulnerable, "
         "expressive face, tailored office clothes that are slightly less sharp than senior partners"
     ),
-    variants=(
-        "boyish and underestimated, anxious ambition, trying to look older than he is",
-        "sharp and privileged but emotionally exposed, polished heir under sudden pressure",
-        "quietly intense and wounded, intelligent eyes, restrained panic beneath a professional exterior",
-        "clean-cut rising associate, expensive but slightly imperfect suit, desperate for approval",
+    variant_stages=(
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "boyish and underestimated, anxious ambition, trying to look older than he is",
+                "sharp and privileged but emotionally exposed, polished heir under sudden pressure",
+                "quietly intense and wounded, intelligent eyes, restrained panic beneath a professional exterior",
+                "clean-cut rising associate, expensive but slightly imperfect suit, desperate for approval",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "boyish face with privileged polish, expensive suit worn slightly too carefully, anxious heir trying to project authority",
+                "sharp young associate with vulnerable eyes, old-money grooming, emotionally exposed beneath a controlled professional mask",
+                "underestimated golden son, clean-cut and expensive, youthful softness contrasted with a tense corporate posture",
+                "privileged but not yet hardened, polished law firm heir with boyish uncertainty and a defensive ambitious stare",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "underestimated golden son, clean-cut old-money polish, soft youthful face, tense shoulders, trying to look composed in an expensive law office",
+                "expensive young heir with gentle features, immaculate suit, nervous corporate posture, privilege undercut by visible uncertainty",
+                "clean-cut law firm son with youthful softness, polished grooming, tense restrained body language, underestimated but quietly intelligent",
+                "privileged golden boy associate, soft face and expensive tailoring, anxious ambition beneath a controlled corporate stance",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-kontext-dev",
+            reference_images=(
+                "ethan-vale-reference-01.png",
+                "ethan-vale-reference-02.png",
+            ),
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            variants=(
+                "use the reference images as visual direction for face, grooming, wardrobe polish, and realism; create an original underestimated golden son with clean-cut old-money polish, soft youthful face, tense shoulders, and a composed law office presence",
+                "use the reference images as visual direction without copying either person exactly; make Ethan an expensive young heir with gentle features, immaculate suit, nervous corporate posture, and realistic natural skin detail",
+                "blend the reference image direction into an original clean-cut law firm son with youthful softness, polished grooming, restrained body language, quiet intelligence, and cinematic realism",
+                "use the reference images to guide realism, facial believability, hair, and wardrobe; create a privileged golden boy associate with soft features, expensive tailoring, and anxious ambition under a controlled corporate stance",
+            ),
+        ),
+        VariantStage(
+            model="bytedance/seedream-4",
+            reference_images=("ethan-vale-reference-01.png","ethan-vale-reference-02.png",),
+            reference_input_name="image_input",
+            reference_input_many=True,
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            aspect_ratio="match_input_image",
+            output_format=None,
+            model_inputs={
+                "size": "2K",
+                "max_images": 1,
+                "enhance_prompt": True,
+                "sequential_image_generation": "disabled",
+            },
+            variants=(
+                "edit the reference portrait into a more realistic live-action character portrait while preserving Ethan's identity, clean-cut expensive look, youthful softness, restrained corporate tension, natural skin texture, and believable law office lighting",
+                "make the reference portrait feel like a real photographed person, reducing any stylized or cartoon-like qualities while keeping the same character, wardrobe polish, facial direction, and tense old-money law firm mood",
+                "refine the reference portrait toward a polished Ivy League law associate: understated old-money grooming, precise tailoring, realistic facial details, soft youthful features, and controlled corporate posture",
+                "keep the same character from the reference image but make him slightly more naive and emotionally readable, with naturalistic skin, gentle features, expensive grooming, and subtle anxious ambition",
+            ),
+        ),
+        VariantStage(
+            model="bytedance/seedream-4.5",
+            reference_images=("ethan-vale-reference-01.png",),
+            reference_input_name="image_input",
+            reference_input_many=True,
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            aspect_ratio="match_input_image",
+            output_format=None,
+            model_inputs={
+                "size": "2K",
+                "max_images": 1,
+                "sequential_image_generation": "disabled",
+            },
+            variants=(
+                "same identity as the reference image, keep the clean-cut expensive look and youthful softness; make it less glossy and less comic-book-like, with unretouched natural skin texture, realistic suit fabric, ordinary office lighting, and a believable photographed finish",
+                "same identity and overall character direction as the reference image, preserve the soft youthful features and polished old-money grooming; reduce AI gloss, avoid a perfect face or flawless skin, use realistic fabric, normal indoor lighting, and subtle natural imperfections",
+            ),
+        ),
+        VariantStage(
+            model="bytedance/seedream-4.5",
+            reference_images=("ethan-vale-reference-01.png","ethan-vale-reference-02.png",),
+            reference_input_name="image_input",
+            reference_input_many=True,
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            aspect_ratio="match_input_image",
+            output_format=None,
+            model_inputs={
+                "size": "2K",
+                "max_images": 1,
+                "sequential_image_generation": "disabled",
+            },
+            variants=(
+                "same character and identity as the reference image, natural neutral studio portrait, ordinary soft studio light, realistic skin texture, realistic suit fabric, clean-cut expensive look, youthful softness, less glossy and unretouched",
+                "same character and identity as the reference image, seated at a conference table in a law firm, ordinary office lighting, realistic fabric and natural skin texture, clean-cut expensive look, youthful softness, less AI gloss",
+                "same character and identity as the reference image, standing in a law firm hallway, natural indoor light, realistic suit fabric, unretouched skin texture, clean-cut old-money grooming, youthful softness, believable photographed look",
+                "same character and identity as the reference image, looking shocked while holding a phone, realistic office lighting, natural skin texture, clean-cut expensive look, youthful softness, believable expression without comic-book drama",
+                "same character and identity as the reference image, angry close-up portrait, vertical 9:16, natural skin texture, realistic fabric, ordinary lighting, clean-cut expensive look, youthful softness preserved, less glossy and less stylized",
+            ),
+        ),
     ),
 )
 
@@ -60,7 +179,7 @@ def resolve_asset_inputs(relative_paths: tuple[str, ...]) -> list[Path]:
     assets_root = ASSETS_DIR.resolve()
 
     for relative_path in relative_paths:
-        path = (ASSETS_DIR / relative_path).resolve()
+        path = resolve_asset_input(relative_path)
         if path != assets_root and assets_root not in path.parents:
             raise ValueError(f"Input image must stay inside assets: {relative_path}")
         if path.exists():
@@ -71,26 +190,120 @@ def resolve_asset_inputs(relative_paths: tuple[str, ...]) -> list[Path]:
     return paths
 
 
-def run_character(character: CharacterConcept) -> None:
-    character_dir = OUTPUT_DIR / character.slug
-    character_dir.mkdir(parents=True, exist_ok=True)
+def resolve_asset_input(relative_path: str) -> Path:
+    path = (ASSETS_DIR / relative_path).resolve()
+    if path.exists():
+        return path
 
+    matches = sorted(ASSETS_DIR.rglob(relative_path))
+    if matches:
+        return matches[0].resolve()
+
+    return path
+
+
+def run_character(character: CharacterConcept) -> None:
     input_images = resolve_asset_inputs(character.optional_input_images)
     if input_images:
-        print(f"Resolved {len(input_images)} input images for {character.name}; {MODEL} may ignore them.")
+        print(f"Resolved {len(input_images)} input images for {character.name}; current models may ignore them.")
 
-    for index, variant in enumerate(character.variants, start=1):
-        output = replicate.run(
-            MODEL,
-            input={
-                "prompt": build_prompt(character, variant),
-                "negative_prompt": NEGATIVE_PROMPT,
-                "aspect_ratio": "9:16",
-                "output_format": "png",
-                "num_outputs": 1,
-            },
-        )
-        save_outputs(output, character_dir, f"{character.slug}-{index:02d}")
+    stage_index = RUN_STAGE_INDEX if RUN_STAGE_INDEX is not None else len(character.variant_stages) - 1
+    stage = character.variant_stages[stage_index]
+    run_variant_stage(character, stage, stage_index)
+
+
+def run_variant_stage(character: CharacterConcept, stage: VariantStage, stage_index: int) -> None:
+    stage_dir = OUTPUT_DIR / character.slug / f"{stage_index:02d}"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    reference_images = resolve_asset_inputs(stage.reference_images)
+
+    if stage.reference_images and not reference_images:
+        raise FileNotFoundError(f"No reference images found for stage {stage_index:02d}")
+
+    if reference_images:
+        if stage.reference_input_many:
+            print(f"Using {len(reference_images)} reference image(s) as {stage.reference_input_name}.")
+        elif len(reference_images) > 1:
+            print(f"Using {reference_images[0].relative_to(ASSETS_DIR)} as {stage.reference_input_name}; this model accepts one input image.")
+
+    for variant_index, variant in enumerate(stage.variants, start=1):
+        stem = output_stem(character, stage_index, variant_index)
+        expected_output = stage_dir / f"{stem}.png"
+        if expected_output.exists():
+            print(f"Skipping existing {expected_output.relative_to(ASSETS_DIR.parent)}")
+            continue
+
+        if variant_index > 1:
+            time.sleep(REQUEST_DELAY_SECONDS)
+
+        output = run_prediction(stage, build_prompt(character, variant), reference_images)
+        save_outputs(output, stage_dir, stem)
+
+
+def output_stem(character: CharacterConcept, stage_index: int, variant_index: int) -> str:
+    return f"{character.slug}-{variant_index:02d}"
+
+
+def run_prediction(stage: VariantStage, prompt: str, reference_images: list[Path]) -> Any:
+    for attempt in range(1, MAX_THROTTLE_RETRIES + 1):
+        model_input = build_model_input(stage, prompt, reference_images)
+        try:
+            return replicate.run(
+                stage.model,
+                input=model_input,
+            )
+        except ReplicateError as error:
+            if getattr(error, "status", None) != 429 or attempt == MAX_THROTTLE_RETRIES:
+                raise
+            print(f"Replicate throttled request; waiting {REQUEST_DELAY_SECONDS}s before retry {attempt + 1}.")
+            time.sleep(REQUEST_DELAY_SECONDS)
+        finally:
+            close_model_input_files(model_input)
+
+    raise RuntimeError("Prediction retry loop exited unexpectedly")
+
+
+def build_model_input(stage: VariantStage, prompt: str, reference_images: list[Path]) -> dict[str, Any]:
+    model_input: dict[str, Any] = {
+        "prompt": prompt,
+        "aspect_ratio": stage.aspect_ratio,
+    }
+
+    if stage.output_format is not None:
+        model_input["output_format"] = stage.output_format
+
+    if stage.model_inputs:
+        model_input.update(stage.model_inputs)
+
+    if stage.include_negative_prompt:
+        model_input["negative_prompt"] = NEGATIVE_PROMPT
+
+    if stage.include_num_outputs:
+        model_input["num_outputs"] = 1
+
+    if reference_images:
+        if stage.reference_input_many:
+            model_input[stage.reference_input_name] = [path.open("rb") for path in reference_images]
+        else:
+            model_input[stage.reference_input_name] = reference_images[0].open("rb")
+
+    return model_input
+
+
+def close_model_input_files(model_input: dict[str, Any]) -> None:
+    for value in model_input.values():
+        close_value(value)
+
+
+def close_value(value: Any) -> None:
+    if isinstance(value, list):
+        for item in value:
+            close_value(item)
+        return
+
+    close = getattr(value, "close", None)
+    if close is not None:
+        close()
 
 
 def save_outputs(output: Any, output_dir: Path, stem: str) -> None:
@@ -98,7 +311,8 @@ def save_outputs(output: Any, output_dir: Path, stem: str) -> None:
         output = [output]
 
     for index, item in enumerate(output, start=1):
-        destination = output_dir / f"{stem}-{index}.png"
+        suffix = "" if len(output) == 1 else f"-{index:02d}"
+        destination = output_dir / f"{stem}{suffix}.png"
         save_output_item(item, destination)
         print(f"Saved {destination.relative_to(ASSETS_DIR.parent)}")
 
@@ -121,7 +335,7 @@ def save_output_item(item: Any, destination: Path) -> None:
 
     source = Path(value)
     if source.exists():
-        shutil.copyfile(source, destination)
+        destination.write_bytes(source.read_bytes())
         return
 
     raise ValueError(f"Unsupported output from Replicate: {item!r}")
