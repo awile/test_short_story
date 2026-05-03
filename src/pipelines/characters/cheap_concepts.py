@@ -260,7 +260,98 @@ MARCUS = CharacterConcept(
     ),
 )
 
-ACTIVE_CHARACTER = MARCUS
+RICHARD = CharacterConcept(
+    slug="richard-vale",
+    name="Richard Vale",
+    description=(
+        "father of Ethan and Marcus, founder and managing partner of Vale and Rowe, powerful and image-conscious, "
+        "authoritative expensive presence, emotionally contained, conservative immaculate senior partner suit"
+    ),
+    variant_stages=(
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "powerful law firm founder in his sixties, conservative immaculate senior partner suit, authoritative expensive presence, emotionally contained, treats family pain like a business decision",
+                "wealthy managing partner and father, late sixties, silver hair, conservative dark suit, commanding posture, image-conscious and visibly burdened by the firm's crisis",
+                "old-money law firm patriarch, polished silver-haired founder, immaculate senior partner wardrobe, clipped restrained expression, powerful but privately shaken",
+                "authoritative father in an expensive law office, conservative suit, controlled face, visibly under pressure, chooses the family name and firm before emotion",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "powerful law firm founder in his sixties, conservative immaculate senior partner suit, authoritative expensive presence, emotionally contained, soap opera patriarch polish, older but not deeply wrinkled",
+                "powerful law firm founder in his early sixties, smooth well-kept face for his age, conservative immaculate senior partner suit, controlled expression, expensive soap opera family patriarch energy",
+                "wealthy senior partner and father in his sixties, silver hair, polished camera-ready face with fewer wrinkles, conservative dark suit, commanding presence, emotionally contained",
+                "old-money law firm founder in his sixties, handsome aging patriarch, lightly lined face, immaculate senior partner suit, restrained expression, treats family pain like a business decision",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-schnell",
+            variants=(
+                "wealthy senior partner and father in his sixties, silver hair, polished camera-ready face with fewer wrinkles, conservative dark suit, commanding presence, emotionally contained, soap opera patriarch realism",
+                "wealthy senior partner and father in his sixties, silver hair, polished well-kept face, conservative dark senior partner suit, calm commanding presence, emotionally contained under pressure",
+                "wealthy law firm founder and father in his sixties, silver hair, camera-ready face with light age lines, conservative immaculate dark suit, powerful contained presence, image-conscious patriarch",
+                "wealthy senior partner and father, early sixties, silver hair, polished face without deep wrinkles, conservative dark suit, restrained expression, commanding but privately shaken",
+            ),
+        ),
+        VariantStage(
+            model="black-forest-labs/flux-kontext-dev",
+            reference_images=("richard-vale-reference-01.png",),
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            variants=(
+                "use the reference image as visual direction for Richard Vale's identity, silver hair, polished camera-ready face with fewer wrinkles, conservative dark senior partner suit, commanding presence, emotionally contained, realistic law firm founder",
+                "preserve the reference image's face direction and wealthy patriarch energy; refine Richard into a powerful silver-haired law firm founder in his sixties, conservative immaculate suit, controlled expression, soap opera realism",
+                "use the reference image to guide facial believability, grooming, and wardrobe; create Richard as an image-conscious senior partner and father, polished face with light age lines, conservative dark suit, calm authority under pressure",
+                "keep the reference image's identity direction while making Richard authoritative and expensive, silver hair, conservative senior partner suit, emotionally restrained expression, realistic corporate-noir portrait",
+            ),
+        ),
+        VariantStage(
+            model="bytedance/seedream-4.5",
+            reference_images=("richard-vale-reference-01.png",),
+            reference_input_name="image_input",
+            reference_input_many=True,
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            aspect_ratio="match_input_image",
+            output_format=None,
+            model_inputs={
+                "size": "2K",
+                "max_images": 1,
+                "sequential_image_generation": "disabled",
+            },
+            variants=(
+                "same identity as the reference image, keep Richard as a silver-haired law firm founder in his sixties with a conservative dark senior partner suit; make it less glossy and less stylized, with unretouched natural skin texture, realistic suit fabric, ordinary office lighting, and a believable photographed finish",
+                "same identity and overall character direction as the reference image, preserve Richard's polished patriarch presence, silver hair, conservative tailoring, and emotionally contained authority; reduce AI gloss, avoid a perfect face or flawless skin, use realistic fabric, normal indoor lighting, and subtle natural age lines",
+            ),
+        ),
+        VariantStage(
+            model="bytedance/seedream-4.5",
+            reference_images=("richard-vale-reference-01.png",),
+            reference_input_name="image_input",
+            reference_input_many=True,
+            include_negative_prompt=False,
+            include_num_outputs=False,
+            aspect_ratio="match_input_image",
+            output_format=None,
+            model_inputs={
+                "size": "2K",
+                "max_images": 1,
+                "sequential_image_generation": "disabled",
+            },
+            variants=(
+                "same character and identity as the reference image, natural neutral studio portrait, ordinary soft studio light, realistic skin texture, realistic suit fabric, silver hair, conservative dark senior partner suit, emotionally contained authority, less glossy and unretouched",
+                "same character and identity as the reference image, seated at the head of a law firm conference table, commanding posture, silver hair, conservative dark suit, calm patriarch presence, ordinary office lighting, realistic fabric and skin",
+                "same character and identity as the reference image, standing in a private senior partner office with glass walls, silver hair, conservative tailored suit, controlled expression, image-conscious law firm founder, natural indoor light, believable photographed look",
+                "same character and identity as the reference image, holding a phone while receiving bad news, emotionally restrained face, silver hair, conservative dark suit, ordinary office lighting, natural skin texture, powerful but privately shaken",
+                "same character and identity as the reference image, authoritative close-up portrait, vertical 9:16, silver hair, conservative senior partner suit collar visible, clipped restrained expression, realistic fabric, ordinary lighting, less stylized",
+            ),
+        ),
+    ),
+)
+
+ACTIVE_CHARACTER = RICHARD
 
 
 def build_prompt(character: CharacterConcept, variant: str) -> str:
